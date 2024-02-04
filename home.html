@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homepage</title>
+  <link rel="stylesheet" href="home.css" />
+</head>
+
+<body>
+  <div class="container">
+    <h1>Welcome, You Are Verified.</h1>
+    <div id="userInfo" class="user-info"></div>
+    <div class="verification-status" id="verificationStatus">
+      <!-- Verification status will be displayed here -->
+    </div>
+    <button id="logoutButton">Logout</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBYWFwaH62X_9iHr9AjzpC65mn3JyE_b-Y",
+      authDomain: "ipt-project-firebase.firebaseapp.com",
+      databaseURL: "https://ipt-project-firebase-default-rtdb.firebaseio.com",
+      projectId: "ipt-project-firebase",
+      storageBucket: "ipt-project-firebase.appspot.com",
+      messagingSenderId: "672891441094",
+      appId: "1:672891441094:web:f6c42fe63382f6b1e0acc7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase();
+
+    // Continue to update the verification status on page load
+    updateVerificationStatus();
+
+    // Check user information and display on login
+    const user = auth.currentUser;
+    if (user) {
+      displayUserInfo(user);
+    }
+
+    function updateVerificationStatus() {
+      const verificationStatusElement = document.getElementById("verificationStatus");
+
+      if (user) {
+        get(ref(db, 'UsersAuthList/' + user.uid))
+          .then((snapshot) => {
+            const userData = snapshot.val();
+            if (userData && userData.e_Verified) {
+              verificationStatusElement.innerHTML = '<p class="verified">Your email is verified.</p>';
+            } else {
+              verificationStatusElement.innerHTML = '<p class="not-verified">Your email is not verified. Please check your email and verify your account.</p>';
+            }
+          })
+          .catch((error) => {
+            console.error('Error checking verification status:', error.message);
+          });
+      } else {
+        // User is not logged in
+        verificationStatusElement.innerHTML = '';
+      }
+    }
+
+    function displayUserInfo(user) {
+      const userInfoElement = document.getElementById("userInfo");
+      userInfoElement.innerHTML = `
+        <p>User Information:</p>
+        <p>Email: ${user.email}</p>
+        <p>User ID: ${user.uid}</p>
+      `;
+    }
+
+    const logoutButton = document.getElementById("logoutButton");
+    if (logoutButton) {
+      logoutButton.addEventListener("click", logoutUser);
+    } else {
+      console.error("Logout button not found");
+    }
+
+    function logoutUser() {
+      console.log("Logout button clicked");
+
+      signOut(auth)
+        .then(() => {
+          console.log("Logout successful");
+          window.location.href = "index.html";
+        })
+        .catch((error) => {
+          console.error('Logout error:', error.message);
+        });
+    }
+  </script>
+</body>
+</html>
