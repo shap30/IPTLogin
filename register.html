@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Sign Up | Registration </title>
+  <title>REGISTRATION</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet" />
 </head>
@@ -60,12 +60,12 @@
       let EmailInput = document.getElementById("EmailInput");
       let PasswordInput = document.getElementById("PasswordInput");
       let ConfirmPasswordInput = document.getElementById("ConfirmPasswordInput");
-
+  
       if (PasswordInput.value !== ConfirmPasswordInput.value) {
         alert("Password does not match the confirmation password.");
         return;
       }
-
+  
       createUserWithEmailAndPassword(auth, EmailInput.value, PasswordInput.value)
         .then((credentials) => {
           set(ref(db, 'UsersAuthList/' + credentials.user.uid), {
@@ -75,13 +75,15 @@
             d_LastName: LastNameInput.value,
             e_Verified: false  // Add a new field to indicate whether the email is verified or not
           });
-
-          alert("User Successfully Created");
-
+  
+          // Display alert before redirecting
+          alert("User Successfully Created. Please check your email for verification.");
+  
           // Sends verification email
           sendEmailVerification(credentials.user)
             .then(() => {
-              alert('An email verification has been sent to ' + EmailInput.value);
+              // Redirect to login page after successful registration
+              window.location.href = "index.html";
             })
             .catch((error) => {
               console.log('Verification Error: ', error.message);

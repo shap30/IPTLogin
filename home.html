@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Homepage</title>
+  <title>HOMEPAGE | VERIFIED US</title>
   <link rel="stylesheet" href="home.css" />
 </head>
 
@@ -16,15 +16,37 @@
       <!-- Verification status will be displayed here -->
     </div>
     <button id="logoutButton">Logout</button>
+    <button id="changeInfoButton">Edit Information</button>
+
+    <div id="changeInfoForm" style="display: none;">
+      <h2>Change Account Information</h2>
+      <form id="changeUserInfoForm">
+        <label for="newFirstName">New First Name:</label>
+        <input type="text" id="newFirstName" name="newFirstName" required><br>
+
+        <label for="newLastName">New Last Name:</label>
+        <input type="text" id="newLastName" name="newLastName" required><br>
+
+        <label for="newEmail">New Email:</label>
+        <input type="email" id="newEmail" name="newEmail" required><br>
+
+        <label for="newPassword">New Password:</label>
+        <input type="password" id="newPassword" name="newPassword" required><br>
+
+        <button id="submitButton">Save Changes</button>
+      </form>
+    </div>
   </div>
 
   <script type="module">
+    // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-
+    import { getAuth, onAuthStateChanged, signOut, updatePassword, updateEmail } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
+    import { getDatabase, ref, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
+    
+    // Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyBYWFwaH62X_9iHr9AjzpC65mn3JyE_b-Y",
+      apiKey: "Your-API-Key",
       authDomain: "ipt-project-firebase.firebaseapp.com",
       databaseURL: "https://ipt-project-firebase-default-rtdb.firebaseio.com",
       projectId: "ipt-project-firebase",
@@ -32,61 +54,197 @@
       messagingSenderId: "672891441094",
       appId: "1:672891441094:web:f6c42fe63382f6b1e0acc7"
     };
-
+    
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase();
-
+    
+    // Global variables
+    let userData = null;
+    
     // Continue to update the verification status on page load
     updateVerificationStatus();
-
-    // Check user information and display on login
-    const user = auth.currentUser;
-    if (user) {
-      displayUserInfo(user);
-    }
-
-    function updateVerificationStatus() {
-      const verificationStatusElement = document.getElementById("verificationStatus");
-
+    
+    // Login state handler
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        get(ref(db, 'UsersAuthList/' + user.uid))
-          .then((snapshot) => {
-            const userData = snapshot.val();
-            if (userData && userData.e_Verified) {
-              verificationStatusElement.innerHTML = '<p class="verified">Your email is verified.</p>';
-            } else {
-              verificationStatusElement.innerHTML = '<p class="not-verified">Your email is not verified. Please check your email and verify your account.</p>';
-            }
-          })
-          .catch((error) => {
-            console.error('Error checking verification status:', error.message);
-          });
+        // Fetch user data
+        userData = await getUserData(user.uid);
+    
+        // Check if the email is verified
+        if (userData && !userData.e_Verified) {
+          alert('Your email is not verified. Please check your email and verify your account.');
+        }
+    
+        showUserInfo(user, userData);
+    
+        // Listen for changes
+        setupRealtimeListener(user.uid);
       } else {
-        // User is not logged in
-        verificationStatusElement.innerHTML = '';
+        // No user logged in
+        sessionStorage.removeItem('userData');
+        showLoginPage();
       }
-    }
-
-    function displayUserInfo(user) {
-      const userInfoElement = document.getElementById("userInfo");
-      userInfoElement.innerHTML = `
-        <p>User Information:</p>
-        <p>Email: ${user.email}</p>
-        <p>User ID: ${user.uid}</p>
-      `;
-    }
-
+    });
+    
+    // Event listeners
     const logoutButton = document.getElementById("logoutButton");
     if (logoutButton) {
       logoutButton.addEventListener("click", logoutUser);
     } else {
       console.error("Logout button not found");
     }
-
+    
+    const changeInfoButton = document.getElementById("changeInfoButton");
+    if (changeInfoButton) {
+      changeInfoButton.addEventListener("click", showChangeInfoForm);
+    } else {
+      console.error("Change Information button not found");
+    }
+    
+    // Function to update verification status
+    function updateVerificationStatus() {
+      const verificationStatusElement = document.getElementById("verificationStatus");
+    
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          get(ref(db, 'UsersAuthList/' + user.uid))
+            .then((snapshot) => {
+              const userData = snapshot.val();
+              if (userData && userData.e_Verified) {
+                verificationStatusElement.innerHTML = '<p class="verified">Your email is verified.</p>';
+              }
+            })
+            .catch((error) => {
+              console.error('Error checking verification status:', error.message);
+            });
+        } else {
+          // User is not logged in
+          verificationStatusElement.innerHTML = '';
+        }
+      });
+    }
+    
+    // Function to fetch user data
+    async function getUserData(userId) {
+      const snapshot = await get(ref(db, 'UsersAuthList/' + userId));
+      return snapshot.val();
+    }
+    
+    // Function to display user information
+    function showUserInfo(user, userData) {
+      const userInfoElement = document.getElementById("userInfo");
+      userInfoElement.innerHTML = `
+        <p>User Information:</p>
+        <p>Name: ${userData && userData.a_FirstName ? userData.a_FirstName : ''} ${userData && userData.b_LastName ? userData.b_LastName : ''}</p>
+        <p>Email: ${user.email}</p>
+        <p>User ID: ${user.uid}</p>
+      `;
+    }
+    
+    // Function to show the change information form
+    function showChangeInfoForm() {
+      document.getElementById("changeInfoForm").style.display = "block";
+    }
+    
+    // Event listener for the change information form
+    const changeUserInfoForm = document.getElementById("changeUserInfoForm");
+    if (changeUserInfoForm) {
+      changeUserInfoForm.addEventListener("submit", submitChangeInfoForm);
+    } else {
+      console.error("Change Information form not found");
+    }
+    
+    // Function to set up a real-time listener for user data changes
+    function setupRealtimeListener(userId) {
+      const userRef = ref(db, 'UsersAuthList/' + userId);
+    
+      // Set up a real-time listener to update the user data on changes
+      onValue(userRef, (snapshot) => {
+        userData = snapshot.val();
+        updateDisplayedInfo(userId);
+      });
+    }
+    
+    // Function to submit the change information form
+    function submitChangeInfoForm(event) {
+      event.preventDefault();
+    
+      const user = auth.currentUser;
+      if (!user) {
+        alert("User not logged in.");
+        return;
+      }
+    
+      const newFirstName = document.getElementById("newFirstName").value;
+      const newLastName = document.getElementById("newLastName").value;
+      const newEmail = document.getElementById("newEmail").value;
+      const newPassword = document.getElementById("newPassword").value;
+    
+      // Update user data in real-time
+      update(ref(db, 'UsersAuthList/' + user.uid), { a_FirstName: newFirstName, b_LastName: newLastName });
+    
+      // Update email and password if provided
+      if (newEmail) {
+        updateEmail(user, newEmail)
+          .then(() => {
+            // Update displayed information after successfully changing email
+            updateDisplayedInfo(user.uid);
+            alert("Email updated successfully!");
+          })
+          .catch((error) => {
+            console.error('Error updating email:', error.message);
+          });
+      }
+    
+      if (newPassword) {
+        updatePassword(user, newPassword)
+          .then(() => {
+            alert("Password updated successfully!");
+          })
+          .catch((error) => {
+            console.error('Error updating password:', error.message);
+          });
+      }
+    
+      // Display success message
+      alert("User information updated successfully!");
+    
+      // Hide the change information form
+      document.getElementById("changeInfoForm").style.display = "none";
+    }
+    
+    // Function to update displayed information after email change
+    function updateDisplayedInfo(userId) {
+      const userInfoElement = document.getElementById("userInfo");
+      const verificationStatusElement = document.getElementById("verificationStatus");
+    
+      get(ref(db, 'UsersAuthList/' + userId))
+        .then((snapshot) => {
+          const userData = snapshot.val();
+          const firstName = userData && userData.a_FirstName ? userData.a_FirstName : '';
+          const lastName = userData && userData.b_LastName ? userData.b_LastName : '';
+          const userEmail = auth.currentUser.email;
+    
+          userInfoElement.innerHTML = `
+            <p>User Information:</p>
+            <p>Name: ${firstName} ${lastName}</p>
+            <p>Email: ${userEmail}</p>
+            <p>User ID: ${auth.currentUser.uid}</p>
+          `;
+    
+          verificationStatusElement.innerHTML = '<p class="verified">Your email is verified.</p>';
+        })
+        .catch((error) => {
+          console.error('Error fetching updated user data:', error.message);
+        });
+    }
+    
+    // Function to log out the user
     function logoutUser() {
       console.log("Logout button clicked");
-
+    
       signOut(auth)
         .then(() => {
           console.log("Logout successful");
@@ -96,6 +254,21 @@
           console.error('Logout error:', error.message);
         });
     }
+    
+    // Function to display a success message
+    function displaySuccessMessage(message) {
+      const successMessageElement = document.createElement("p");
+      successMessageElement.textContent = message;
+      document.body.appendChild(successMessageElement);
+    
+      // Optionally, you can remove the success message after a few seconds.
+      setTimeout(() => {
+        document.body.removeChild(successMessageElement);
+      }, 3000); // 3000 milliseconds (3 seconds)
+    }
+    
+    // Display success message after updating user information
+    displaySuccessMessage("User information updated successfully!");
   </script>
 </body>
 </html>

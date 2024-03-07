@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>Login | Registration</title>
+  <title>LOGIN | REGISTRATION</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet" />
 </head>
@@ -23,12 +23,14 @@
   </p>
 
   <script type="module">
+    // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-auth.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.2/firebase-database.js";
-
+  
+    // Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyBYWFwaH62X_9iHr9AjzpC65mn3JyE_b-Y",
+      apiKey: "Your-API-Key",
       authDomain: "ipt-project-firebase.firebaseapp.com",
       databaseURL: "https://ipt-project-firebase-default-rtdb.firebaseio.com",
       projectId: "ipt-project-firebase",
@@ -36,17 +38,21 @@
       messagingSenderId: "672891441094",
       appId: "1:672891441094:web:f6c42fe63382f6b1e0acc7"
     };
-
+  
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase();
-
+  
+    // Event listener for the login button
     document.getElementById("loginButton").addEventListener("click", loginUser);
-
+  
+    // Function to handle user login
     function loginUser() {
       let EmailInput = document.getElementById("EmailInput");
       let PasswordInput = document.getElementById("PasswordInput");
-
+  
+      // Sign in with email and password
       signInWithEmailAndPassword(auth, EmailInput.value, PasswordInput.value)
         .then((userCredential) => {
           const user = userCredential.user;
